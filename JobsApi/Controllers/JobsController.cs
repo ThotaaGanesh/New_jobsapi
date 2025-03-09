@@ -44,6 +44,7 @@ namespace JobsApi.Controllers
                 return await _context.Jobs.AsNoTracking()
                     .Where(x => x.Location.Contains(user.Location))
                     .ToListAsync();
+
         }
 
         // GET: api/jobs/organisation/5
