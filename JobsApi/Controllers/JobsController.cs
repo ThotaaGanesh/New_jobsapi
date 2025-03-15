@@ -35,21 +35,36 @@ namespace JobsApi.Controllers
 
         // GET: api/Jobs
         [HttpGet("user/{userid}")]
-        public async Task<ActionResult<IEnumerable<Job>>> GetJobsByUser(int userid)
+        public async Task<ActionResult<IEnumerable<Job>>> GetJobsByUser(int userid, [FromQuery] string search = "")
         {
             var user = await _context.Users.FindAsync(userid);
-            if (string.IsNullOrEmpty(user!.Location))
-                return await _context.Jobs.ToListAsync();
+            if (string.IsNullOrEmpty(user!.Location) || user.Name.Contains("admin"))
+                return await _context.Jobs.AsNoTracking()
+                    .Where(Job => (string.IsNullOrEmpty(search) ||
+                                    Job.CompanyName.ToLower().Contains(search.ToLower()) ||
+                                    Job.JobName.ToLower().Contains(search.ToLower()) ||
+                                    Job.Description.ToLower().Contains(search.ToLower()) ||
+                                    Job.Location.ToLower().Contains(search.ToLower()) ||
+                                    Job.Qualification.ToLower().Contains(search.ToLower())
+                                    ))
+                    .ToListAsync();
             else
                 return await _context.Jobs.AsNoTracking()
-                    .Where(x => x.Location.Contains(user.Location))
+                    .Where(Job => Job.Location.Contains(user.Location) &&
+                    (string.IsNullOrEmpty(search) ||
+                    Job.CompanyName.ToLower().Contains(search.ToLower()) ||
+                    Job.JobName.ToLower().Contains(search.ToLower()) ||
+                    Job.Description.ToLower().Contains(search.ToLower()) ||
+                    Job.Location.ToLower().Contains(search.ToLower()) ||
+                    Job.Qualification.ToLower().Contains(search.ToLower())
+                    ))
                     .ToListAsync();
 
         }
 
         // GET: api/jobs/organisation/5
         [HttpGet("organisation/{orgId}")]
-        public async Task<IActionResult> GetJobsByOrganization(int orgId)
+        public async Task<IActionResult> GetJobsByOrganization(int orgId, [FromQuery] string search = "")
         {
             if (orgId <= 0)
             {
@@ -60,13 +75,19 @@ namespace JobsApi.Controllers
             try
             {
                 jobs = await _context.Jobs
-                                         .Where(job => job.UserId == orgId || job.UserId == 5)
+                                         .Where(job => (job.UserId == orgId || job.UserId == 5) &&
+                                         string.IsNullOrEmpty(search) ||
+                                                     job.JobName.Contains(search) ||
+                                                     job.Description.Contains(search) ||
+                                                     job.Location.Contains(search) ||
+                                                     job.ContactPerson.Contains(search) ||
+                                                     job.Qualification.Contains(search))
                                          .ToListAsync();
 
-                if (jobs.Count == 0)
-                {
-                    return NotFound($"No jobs found for the organization ID: {orgId}");
-                }
+                //if (jobs.Count == 0)
+                //{
+                //    return NotFound($"No jobs found for the organization ID: {orgId}");
+                //}
 
             }
             catch (Exception ex)
@@ -93,18 +114,19 @@ namespace JobsApi.Controllers
                 var currentuser = await _context.Users
                                         .FindAsync(orgId);
                 var users = await _context.Users
-                                     .Where(user => user.Location.Contains(currentuser.Location) && user.RoleId != 1 &&
+                                     .Where(user => (currentuser.Name.Contains("admin") || user.Location.Contains(currentuser.Location)) && user.RoleId == 3 &&
                                                     (string.IsNullOrEmpty(search) ||
-                                                     user.Name.ToLower().Contains(search.ToLower()) ||
-                                                     user.Description.ToLower().Contains(search.ToLower()) ||
-                                                     user.Qualification.ToLower().Contains(search.ToLower())))
+                                                     user.Name.Contains(search) ||
+                                                     user.Description.Contains(search) ||
+                                                     user.Location.Contains(search) ||
+                                                     user.Qualification.Contains(search)))
                                      .Select(x => new { x.Name, x.Description, x.Qualification, x.Location, x.PhoneNumber, x.EmailId })
                                      .ToListAsync();
 
-                if (users.Count == 0)
-                {
-                    return NotFound($"No profiles found for the organization ID: {orgId}");
-                }
+                //if (users.Count == 0)
+                //{
+                //    return NotFound($"No profiles found for the organization ID: {orgId}");
+                //}
                 return Ok(users);  // Return HTTP 200 with the list of jobs DTOs
             }
             catch (Exception ex)
