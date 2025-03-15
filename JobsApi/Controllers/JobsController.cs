@@ -78,6 +78,42 @@ namespace JobsApi.Controllers
             return Ok(jobs);  // Return HTTP 200 with the list of jobs DTOs
         }
 
+        // GET: api/jobs/organisation/5/allprofiles
+        [HttpGet("organisation/{orgId}/allprofiles")]
+        public async Task<IActionResult> GetAllProfilesByOrganization(int orgId, [FromQuery] string search = "")
+        {
+            if (orgId <= 0)
+            {
+                return BadRequest("Invalid organization ID provided.");
+            }
+
+
+            try
+            {
+                var currentuser = await _context.Users
+                                        .FindAsync(orgId);
+                var users = await _context.Users
+                                     .Where(user => user.Location.Contains(currentuser.Location) && user.RoleId != 1 &&
+                                                    (string.IsNullOrEmpty(search) ||
+                                                     user.Name.ToLower().Contains(search.ToLower()) ||
+                                                     user.Description.ToLower().Contains(search.ToLower()) ||
+                                                     user.Qualification.ToLower().Contains(search.ToLower())))
+                                     .Select(x => new { x.Name, x.Description, x.Qualification, x.Location, x.PhoneNumber, x.EmailId })
+                                     .ToListAsync();
+
+                if (users.Count == 0)
+                {
+                    return NotFound($"No profiles found for the organization ID: {orgId}");
+                }
+                return Ok(users);  // Return HTTP 200 with the list of jobs DTOs
+            }
+            catch (Exception ex)
+            {
+                // Implement logging as necessary
+                return StatusCode(500, "A problem occurred while handling your request.");
+            }
+        }
+
         // GET: api/Jobs/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Job>> GetJob(int id)
