@@ -37,9 +37,10 @@ namespace JobsApi.Controllers
         [HttpGet("user/{userid}")]
         public async Task<ActionResult<IEnumerable<Job>>> GetJobsByUser(int userid, [FromQuery] string search = "")
         {
+            List<Job> jobs = [];
             var user = await _context.Users.FindAsync(userid);
             if (string.IsNullOrEmpty(user!.Location) || user.Name.Contains("admin"))
-                return await _context.Jobs.AsNoTracking()
+                jobs = await _context.Jobs.AsNoTracking()
                     .Where(Job => (string.IsNullOrEmpty(search) ||
                                     Job.CompanyName.ToLower().Contains(search.ToLower()) ||
                                     Job.JobName.ToLower().Contains(search.ToLower()) ||
@@ -49,7 +50,7 @@ namespace JobsApi.Controllers
                                     ))
                     .ToListAsync();
             else
-                return await _context.Jobs.AsNoTracking()
+                jobs = await _context.Jobs.AsNoTracking()
                     .Where(Job => Job.Location.Contains(user.Location) &&
                     (string.IsNullOrEmpty(search) ||
                     Job.CompanyName.ToLower().Contains(search.ToLower()) ||
@@ -59,6 +60,17 @@ namespace JobsApi.Controllers
                     Job.Qualification.ToLower().Contains(search.ToLower())
                     ))
                     .ToListAsync();
+            if (!jobs.Any())
+                jobs = await _context.Jobs.AsNoTracking()
+                    .Where(Job => (string.IsNullOrEmpty(search) ||
+                                    Job.CompanyName.ToLower().Contains(search.ToLower()) ||
+                                    Job.JobName.ToLower().Contains(search.ToLower()) ||
+                                    Job.Description.ToLower().Contains(search.ToLower()) ||
+                                    Job.Location.ToLower().Contains(search.ToLower()) ||
+                                    Job.Qualification.ToLower().Contains(search.ToLower())
+                                    ))
+                    .ToListAsync();
+            return jobs;
 
         }
 

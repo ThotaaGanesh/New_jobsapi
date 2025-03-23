@@ -81,13 +81,12 @@ namespace JobsApi.Controllers
         // POST: api/SendNotifications
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<SendNotification>> PostSendNotification(SendNotification sendNotification)
+        public async Task<ActionResult<SendNotification>> PostSendNotification(SendNotificationDTO sendNotification)
         {
             try
             {
-                _context.SendNotifications.Add(sendNotification);
+                _context.SendNotifications.Add(MapNotification(sendNotification));
                 await _context.SaveChangesAsync();
-                var state = _context.Entry(sendNotification).State;
                 await TriggerNotificationAZFunction(sendNotification.Type);
                 return CreatedAtAction("GetSendNotification", new { id = sendNotification.Id }, sendNotification);
             }
@@ -95,6 +94,11 @@ namespace JobsApi.Controllers
             {
                 throw;
             }
+        }
+
+        private SendNotification MapNotification(SendNotificationDTO sendNotification)
+        {
+            return new SendNotification() { IsNotificationSent = sendNotification.IsNotificationSent, JobId = sendNotification.JobId, Type = sendNotification.Type, UserId = sendNotification.UserId };
         }
 
         // DELETE: api/SendNotifications/5

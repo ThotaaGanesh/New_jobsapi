@@ -19,3 +19,17 @@ public partial class SendNotification
 
     public virtual User User { get; set; } = null!;
 }
+
+public partial class SendNotificationDTO
+{
+    public int Id { get; set; }
+
+    public int UserId { get; set; }
+
+    public int JobId { get; set; }
+
+    public string Type { get; set; } = null!;
+
+    public bool IsNotificationSent { get; set; }
+
+}
